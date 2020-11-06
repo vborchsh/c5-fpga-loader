@@ -11,9 +11,9 @@ int     fd; // file descriptor for memory access
 void*   virtualbase; // virtual memory address space
 char    rbf_file [32] = "fpga_config_file.rbf"; // default .rbf filename
 
-/**
-* Print help
-*/
+//
+// Print help
+//
 void print_help()
 {
   printf("FPGA firmware loader\r\n");
@@ -34,10 +34,10 @@ void print_help()
 }
 
 
-/**
-* Status reg report MSEL (RO) config and FPGA current state (RW).
-* Also report cfgwdth, cdratio registers and other useful registers.
-*/
+//
+// Status reg report MSEL (RO) config and FPGA current state (RW).
+// Also report cfgwdth, cdratio registers and other useful registers.
+//
 void report_status()
 {
   uint8_t status = alt_read_byte(virtualbase + STAT_OFFSET);
@@ -188,9 +188,9 @@ void set_nconfigpull(uint8_t value)
 }
 
 
-/**
-/* FPGA off
-*/
+//
+// FPGA off
+//
 void fpga_off()
 {
   set_nconfigpull(1);
@@ -198,19 +198,18 @@ void fpga_off()
 }
 
 
-/**
-/* FPGA on
-*/
+//
+// FPGA on
+//
 void fpga_on()
 {
   set_nconfigpull(0);
   printf("%s.\n", "Turning FPGA On");
 }
 
-
-/**
-/* Auxiliary functions
-*/
+//
+// Auxiliary functions
+//
 char* status_code(uint8_t code)
 {
   char* description = (char *)malloc(sizeof(char) * 30);
@@ -226,9 +225,9 @@ char* status_code(uint8_t code)
 }
 
 
-/**
-/* Complete config routine
-*/
+//
+// Complete config routine
+//
 void config_routine()
 {
   report_status(); // Check registers... could be accessed using "status" argument.
