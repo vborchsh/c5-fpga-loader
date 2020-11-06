@@ -133,7 +133,7 @@ void config_fpga(const char* filename)
   // We advancse every 4 bytes (32 bits).
 
   bool run_while = true;
-  printf("%s\n", "Loading rbf file.");
+  printf("%s\n", "Loading rbf file...");
 
   while(run_while) {
     ssize_t read_result = read(rbf, data_buffer, 4);
@@ -153,6 +153,7 @@ void config_fpga(const char* filename)
   }
 
   close(rbf);
+  printf("Done");
 }
 
 void set_axicfgen(uint8_t value)
@@ -229,7 +230,7 @@ char* status_code(uint8_t code)
 //
 // Complete config routine
 //
-void config_routine()
+void config_routine(const char* filename)
 {
   report_status(); // Check registers... could be accessed using "status" argument.
   set_ctrl_en(1);  // Activate control by HPS.
@@ -241,7 +242,7 @@ void config_routine()
   while(1) if(fpga_state() == 0x2) break;
 
   set_axicfgen(1); // Activate AXI configuration data transfers.
-  config_fpga();   // Load rbf config file to fpga manager data register.
+  config_fpga(filename);   // Load rbf config file to fpga manager data register.
   while(1) if(fpga_state() == 0x4) break;
 
   set_axicfgen(0); // Turn off AXI configuration data transfers..
@@ -258,22 +259,22 @@ int main(int argc, const char * argv[])
   // Open memory device
   fd = open("/dev/mem", (O_RDWR | O_SYNC));
   if (0 > fd) {
-    printf("/dev/mem openning error");
+    printf("/dev/mem openning error\r\n");
     return -1;
   }
   // Map address space
   virtualbase = mmap(NULL, (size_t)1, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, FPGA_MANAGER_ADD);
   if (virtualbase == MAP_FAILED) {
-    printf("mmap mapping error");
+    printf("mmap mapping error\r\n");
     return -1;
   }
   // Parse arguments
-  if(argc > 1) {
+  if ( (argc > 1) && (argc < 4) ) {
     if      (strcmp(argv[1], "status")      == 0) report_status();
-    else if (strcmp(argv[1], "load")        == 0) config_routine();
+    else if (strcmp(argv[1], "load")        == 0) config_routine(argv[2]);
     else if (strcmp(argv[1], "cdr")         == 0) set_cdratio();
     else if (strcmp(argv[1], "reset")       == 0) reset_fpga();
-    else if (strcmp(argv[1], "config")      == 0) config_fpga();
+    else if (strcmp(argv[1], "config")      == 0) config_fpga(argv[2]);
     else if (strcmp(argv[1], "axicf")       == 0) set_axicfgen(atoi(argv[2]));
     else if (strcmp(argv[1], "off")         == 0) fpga_off();
     else if (strcmp(argv[1], "on")          == 0) fpga_on();
@@ -283,8 +284,6 @@ int main(int argc, const char * argv[])
   }
   else {
     print_help();
-    // Default action is to program fpga with default rbf file.
-    // config_routine();
   }
 
   close(fd);
