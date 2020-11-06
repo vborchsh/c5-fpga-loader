@@ -9,7 +9,7 @@
 
 int     fd; // file descriptor for memory access
 void*   virtualbase; // virtual memory address space
-char    rbf_file [32] = "fpga_config_file.rbf"; // default .rbf filename
+char    default_rbf_file [32] = "fpga_config_file.rbf"; // default .rbf filename
 
 //
 // Print help
@@ -19,16 +19,16 @@ void print_help()
   printf("FPGA firmware loader\r\n");
   printf("\r\n");
   printf("Using:\r\n");
-  printf("status            - print FPGA status registers");
-  printf("load              - run routine FPGA configuration with status messages and etc.");
-  printf("cdr               - set CDR ratio to 0x3");
-  printf("reset             - reset FPGA");
-  printf("config [.rbf]     - load [.rbf] to FPGA");
-  printf("axicf [val]       - set axicfgen to [val]");
-  printf("off               - power off FPGA");
-  printf("on                - power on FPGA");
-  printf("ctrl_en [val]     - set control to [val]");
-  printf("nconfigpull [val] - set nconfigpull to [val]");
+  printf("status            - print FPGA status registers\r\n");
+  printf("load [.rbf]       - run routine FPGA configuration with status messages and etc.\r\n");
+  printf("cdr               - set CDR ratio to 0x3\r\n");
+  printf("reset             - reset FPGA\r\n");
+  printf("config [.rbf]     - load [.rbf] to FPGA\r\n");
+  printf("axicf [val]       - set axicfgen to [val]\r\n");
+  printf("off               - power off FPGA\r\n");
+  printf("on                - power on FPGA\r\n");
+  printf("ctrl_en [val]     - set control to [val]\r\n");
+  printf("nconfigpull [val] - set nconfigpull to [val]\r\n");
   printf("\r\n");
   printf("\r\n");
 }
@@ -108,20 +108,21 @@ void reset_fpga()
   printf("%s.\n", "Resetting FPGA");
 }
 
-void config_fpga()
-// Main routine to transfer rbf file to fpga manager data register.
+// Main routine to transfer rbf file to fpga manager data register
+void config_fpga(const char* filename)
 {
-  // Memory map the fpga data register
-  void * data_mmap = mmap(NULL, 4,
-   (PROT_READ|PROT_WRITE), MAP_SHARED, fd, FPGA_MANAGER_DATA_ADD);
-
-  // Open rbf file.
-  int rbf = open(rbf_file, (O_RDONLY|O_SYNC));
+  // mmap the fpga data register
+  void* data_mmap = mmap(NULL, 4, (PROT_READ|PROT_WRITE), MAP_SHARED, fd, FPGA_MANAGER_DATA_ADD);
+  // Open given rbf file
+  int rbf = open(filename, (O_RDONLY|O_SYNC));
   if (rbf < 0) {
-    // Some error happened...
-    printf("\n%s\n\n",
-      "Error opening file. Check for an appropiate fpga_config_file.rbf file.");
-    exit(-1);
+    printf("\r\nError opening given file. Try to load default...\r\n");
+    rbf = open(default_rbf_file, (O_RDONLY|O_SYNC));
+    if (rbf < 0) {
+      printf("\r\nError opening default file. Check for an appropiate fpga_config_file.rbf file.\r\n");
+      printf("\r\nExiting...\r\n");
+      exit(-1);
+    }
   }
 
   // Set buffer to read rbf files and copy to fpga manager data register.
