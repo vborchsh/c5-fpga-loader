@@ -10,7 +10,7 @@
 ################################################
 
 # DEFINE TARGET AND SOURCE CODE
-TARGET = fpga_rbf_loader
+TARGET = rbf_loader.exe
 
 # Source Code
 SRCS=$(wildcard *.c functions/*.c)

@@ -1,2 +1,2 @@
 *.o
-fpga_rbf_load
+*.exe
