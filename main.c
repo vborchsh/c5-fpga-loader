@@ -1,54 +1,44 @@
 #include "main.h"
 
-#define FPGA_MANAGER_ADD (0xff706000) // FPGA MANAGER MAIN REGISTER ADDRESS
-#define STAT_OFFSET      (0x000)
-#define CTRL_OFFSET      (0x004)
-#define GPIO_INTSTATUS   (0x840)
+#define FPGA_MANAGER_ADD      0xff706000 // FPGA MANAGER MAIN REGISTER ADDRESS
+#define STAT_OFFSET           0x00000000
+#define CTRL_OFFSET           0x00000004
+#define GPIO_INTSTATUS        0x00000840
 
-#define FPGA_MANAGER_DATA_ADD (0xffb90000) // FPGA MANAGER DATA REGISTER ADDRESS
+#define FPGA_MANAGER_DATA_ADD 0xffb90000 // FPGA MANAGER DATA REGISTER ADDRESS
 
-int fd; // file descriptor for memory access
-void * virtualbase; // puntero genérico con map de userspace a hw
-char rbf_file [32] = "fpga_config_file.rbf";
+int     fd; // file descriptor for memory access
+void*   virtualbase; // virtual memory address space
+char    rbf_file [32] = "fpga_config_file.rbf"; // default .rbf filename
 
-int main(int argc, const char * argv[])
+/**
+* Print help
+*/
+void print_help()
 {
-  const size_t largobytes = 1;
-
-  fd = open("/dev/mem", (O_RDWR|O_SYNC));
-
-  virtualbase = mmap(NULL, largobytes,
-   (PROT_READ|PROT_WRITE), MAP_SHARED, fd, FPGA_MANAGER_ADD);
-  // MAP_SHARED comparte la memoria con otras apicaciones
-  // PROT READ y PROT WRITE, para lectura y escritura
-
-  if(argc > 1) {
-    if(strcmp(argv[1], "report_status") == 0)     report_status();
-    else if(strcmp(argv[1], "status") == 0)       report_status();
-    else if(strcmp(argv[1], "set_cdratio") == 0)  set_cdratio();
-    else if(strcmp(argv[1], "reset_fpga") == 0)   reset_fpga();
-    else if(strcmp(argv[1], "reset") == 0)        reset_fpga();
-    else if(strcmp(argv[1], "config_fpga") == 0)  config_fpga();
-    else if(strcmp(argv[1], "set_axicfgen") == 0) set_axicfgen(atoi(argv[2]));
-    else if(strcmp(argv[1], "fpga_off") == 0)     fpga_off();
-    else if(strcmp(argv[1], "fpga_on") == 0)      fpga_on();
-    else if(strcmp(argv[1], "set_ctrl_en") == 0)  set_ctrl_en(atoi(argv[2]));
-    else if(strcmp(argv[1], "set_nconfigpull") == 0)
-      set_nconfigpull(atoi(argv[2]));
-  }
-
-  else {
-    // Default action is to program fpga with default rbf file.
-    config_routine();
-  }
-
-  close(fd);
-  return 0;
+  printf("FPGA firmware loader\r\n");
+  printf("\r\n");
+  printf("Using:\r\n");
+  printf("status            - print FPGA status registers");
+  printf("load              - run routine FPGA configuration with status messages and etc.");
+  printf("cdr               - set CDR ratio to 0x3");
+  printf("reset             - reset FPGA");
+  printf("config [.rbf]     - load [.rbf] to FPGA");
+  printf("axicf [val]       - set axicfgen to [val]");
+  printf("off               - power off FPGA");
+  printf("on                - power on FPGA");
+  printf("ctrl_en [val]     - set control to [val]");
+  printf("nconfigpull [val] - set nconfigpull to [val]");
+  printf("\r\n");
+  printf("\r\n");
 }
 
+
+/**
+* Status reg report MSEL (RO) config and FPGA current state (RW).
+* Also report cfgwdth, cdratio registers and other useful registers.
+*/
 void report_status()
-// Status reg report MSEL (RO) config and FPGA current state (RW).
-// Also report cfgwdth, cdratio registers and other useful registers.
 {
   uint8_t status = alt_read_byte(virtualbase + STAT_OFFSET);
   uint8_t mode_mask = 0b111;
@@ -197,25 +187,33 @@ void set_nconfigpull(uint8_t value)
   alt_write_hword(virtualbase + CTRL_OFFSET, control_reg);
 }
 
+
+/**
+/* FPGA off
+*/
 void fpga_off()
 {
   set_nconfigpull(1);
   printf("%s.\n", "Turning FPGA Off");
 }
 
+
+/**
+/* FPGA on
+*/
 void fpga_on()
 {
   set_nconfigpull(0);
   printf("%s.\n", "Turning FPGA On");
 }
 
-// ****************************************************************************
-// *                            Auxiliary functions                           *
-// ****************************************************************************
 
-char * status_code(uint8_t code)
+/**
+/* Auxiliary functions
+*/
+char* status_code(uint8_t code)
 {
-  char * description = (char *)malloc(sizeof(char) * 30);
+  char* description = (char *)malloc(sizeof(char) * 30);
 
   if (code == 0x0)      description = "Powered Off";
   else if (code == 0x1) description = "Reset Phase";
@@ -227,10 +225,10 @@ char * status_code(uint8_t code)
   return description;
 }
 
-// ****************************************************************************
-// *                          Complete config routine                         *
-// ****************************************************************************
 
+/**
+/* Complete config routine
+*/
 void config_routine()
 {
   report_status(); // Check registers... could be accessed using "status" argument.
@@ -249,4 +247,46 @@ void config_routine()
   set_axicfgen(0); // Turn off AXI configuration data transfers..
   set_ctrl_en(0);  // Disable control by HPS (so JTAG can load new fpga configs).
   report_status(); // Should report "User mode".
+}
+
+
+// ----------------------------------------------------------------------------
+// Main program
+// ----------------------------------------------------------------------------
+int main(int argc, const char * argv[])
+{
+  // Open memory device
+  fd = open("/dev/mem", (O_RDWR | O_SYNC));
+  if (0 > fd) {
+    printf("/dev/mem openning error");
+    return -1;
+  }
+  // Map address space
+  virtualbase = mmap(NULL, (size_t)1, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, FPGA_MANAGER_ADD);
+  if (virtualbase == MAP_FAILED) {
+    printf("mmap mapping error");
+    return -1;
+  }
+  // Parse arguments
+  if(argc > 1) {
+    if      (strcmp(argv[1], "status")      == 0) report_status();
+    else if (strcmp(argv[1], "load")        == 0) config_routine();
+    else if (strcmp(argv[1], "cdr")         == 0) set_cdratio();
+    else if (strcmp(argv[1], "reset")       == 0) reset_fpga();
+    else if (strcmp(argv[1], "config")      == 0) config_fpga();
+    else if (strcmp(argv[1], "axicf")       == 0) set_axicfgen(atoi(argv[2]));
+    else if (strcmp(argv[1], "off")         == 0) fpga_off();
+    else if (strcmp(argv[1], "on")          == 0) fpga_on();
+    else if (strcmp(argv[1], "ctrl_en")     == 0) set_ctrl_en(atoi(argv[2]));
+    else if (strcmp(argv[1], "nconfigpull") == 0) set_nconfigpull(atoi(argv[2]));
+    else                                          print_help();
+  }
+  else {
+    print_help();
+    // Default action is to program fpga with default rbf file.
+    // config_routine();
+  }
+
+  close(fd);
+  return 0;
 }

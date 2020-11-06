@@ -1,8 +1,9 @@
-# DE10-Nano FPGA Configuration from Linux
+# Cyclone V FPGA Configuration from Linux
 
-> Nicolás Hasbún A. 18 - 05 - 2018
+> Based on:
+> https://github.com/nhasbun/de10nano_fpga_linux_config
 
-Software to configure the FPGA portion of the Cyclone V SoC. It works under Linux focused on the de10nano platform but should be easily portable to other platforms using the same family chip.
+Software to configure the FPGA portion of the Cyclone V SoC. It works under Linux.
 
 Main sources to accomplish this work:
 
@@ -23,10 +24,8 @@ Preloader and U-boot methods are well covered on Altera documentation being U-bo
 
 Altera Embedded Command Shell (16.1 or newer) should be used to compile the project. Just run "make" and there you go.
 
-If  "socfpga" is presented on LAN then compiled file will be uploaded to */home/root/fpga_manager_test* folder on target.
-
 ## Loading rbf File
 
-RBF file should be created from Quartus Project with compression enabled and MSEL [4:0] pins with 01010 settings. Code is easily modifiable to match other MSEL configurations (keep an eye on *cdgwdth* and *cdratio* registers) but Altera recommends using always FPP x 32 configuration scheme anyways.
+RBF file should be created from Quartus Project with __compression__ enabled and MSEL [4:0] pins with 01010 settings. Code is easily modifiable to match other MSEL configurations (keep an eye on *cdgwdth* and *cdratio* registers) but Altera recommends using always FPP x 32 configuration scheme anyways.
 
 Main program is called **fpga_rbf_load** and it will look for **fpga_config_file.rbf** file to config the FPGA.
