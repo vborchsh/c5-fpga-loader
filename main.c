@@ -73,6 +73,10 @@ void report_status()
   printf("%s\n",      "******************************************************");
 }
 
+
+//
+// Return current FPGA state
+//
 uint8_t fpga_state()
 {
   uint8_t status = alt_read_byte(virtualbase + STAT_OFFSET);
@@ -82,9 +86,12 @@ uint8_t fpga_state()
   return mode;
 }
 
-void set_cdratio()
+
+//
 // This should match your MSEL Pin configuration.
 // This is a config for MSEL[4..0] = 01010
+//
+void set_cdratio()
 {
   uint16_t control_reg  = alt_read_hword(virtualbase + CTRL_OFFSET);
   uint16_t cdratio_mask = (0b11 << 6);
@@ -96,6 +103,10 @@ void set_cdratio()
   printf("%s 0x%x.\n", "Setting cdratio with", cdratio);
 }
 
+
+//
+// Put FPGA in to RESET mode
+//
 void reset_fpga()
 {
   uint8_t status = alt_read_byte(virtualbase + STAT_OFFSET);
@@ -108,7 +119,10 @@ void reset_fpga()
   printf("%s.\n", "Resetting FPGA");
 }
 
+
+//
 // Main routine to transfer rbf file to fpga manager data register
+//
 void config_fpga(const char* filename)
 {
   // mmap the fpga data register
@@ -130,7 +144,7 @@ void config_fpga(const char* filename)
   memset(data_buffer, 0, 4); // set initial data to 0.
 
   // Loop to read rbf and write to fpga data address.
-  // We advancse every 4 bytes (32 bits).
+  // We advance every 4 bytes (32 bits).
 
   bool run_while = true;
   printf("%s\n", "Loading rbf file...");
@@ -156,6 +170,10 @@ void config_fpga(const char* filename)
   printf("Done");
 }
 
+
+//
+// Set AXIcfgen register to value
+//
 void set_axicfgen(uint8_t value)
 {
   uint16_t control_reg  = alt_read_hword(virtualbase + CTRL_OFFSET);
@@ -167,6 +185,10 @@ void set_axicfgen(uint8_t value)
   alt_write_hword(virtualbase + CTRL_OFFSET, control_reg);
 }
 
+
+//
+// Set control enable register
+//
 void set_ctrl_en(uint8_t value)
 {
   uint16_t control_reg  = alt_read_hword(virtualbase + CTRL_OFFSET);
@@ -178,6 +200,10 @@ void set_ctrl_en(uint8_t value)
   alt_write_hword(virtualbase + CTRL_OFFSET, control_reg);
 }
 
+
+//
+// Set nconfig pull register
+//
 void set_nconfigpull(uint8_t value)
 {
   uint16_t control_reg  = alt_read_hword(virtualbase + CTRL_OFFSET);
@@ -209,8 +235,9 @@ void fpga_on()
   printf("%s.\n", "Turning FPGA On");
 }
 
+
 //
-// Auxiliary functions
+// Status code decoding
 //
 char* status_code(uint8_t code)
 {
@@ -251,9 +278,9 @@ void config_routine(const char* filename)
 }
 
 
-// ----------------------------------------------------------------------------
+//
 // Main program
-// ----------------------------------------------------------------------------
+//
 int main(int argc, const char * argv[])
 {
   // Open memory device
@@ -269,15 +296,18 @@ int main(int argc, const char * argv[])
     return -1;
   }
   // Parse arguments
-  if ( (argc > 1) && (argc < 4) ) {
+  if ( (argc > 1) && (argc < 3) ) {
     if      (strcmp(argv[1], "status")      == 0) report_status();
-    else if (strcmp(argv[1], "load")        == 0) config_routine(argv[2]);
     else if (strcmp(argv[1], "cdr")         == 0) set_cdratio();
     else if (strcmp(argv[1], "reset")       == 0) reset_fpga();
-    else if (strcmp(argv[1], "config")      == 0) config_fpga(argv[2]);
-    else if (strcmp(argv[1], "axicf")       == 0) set_axicfgen(atoi(argv[2]));
     else if (strcmp(argv[1], "off")         == 0) fpga_off();
     else if (strcmp(argv[1], "on")          == 0) fpga_on();
+    else                                          print_help();
+  }
+  else if ( (argc > 1) && (argc < 4) ) {
+    if      (strcmp(argv[1], "load")        == 0) config_routine(argv[2]);
+    else if (strcmp(argv[1], "config")      == 0) config_fpga(argv[2]);
+    else if (strcmp(argv[1], "axicf")       == 0) set_axicfgen(atoi(argv[2]));
     else if (strcmp(argv[1], "ctrl_en")     == 0) set_ctrl_en(atoi(argv[2]));
     else if (strcmp(argv[1], "nconfigpull") == 0) set_nconfigpull(atoi(argv[2]));
     else                                          print_help();
